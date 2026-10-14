@@ -1,14 +1,36 @@
-import type { NewPatient } from './types.ts';
+import { Gender, type NewPatient } from './types.ts';
 
 const isString = (text: unknown): text is string => {
   return typeof text === 'string' || text instanceof String;
 };
 
-const parseString = (param: unknown, paramName: string): string => {
-  if (!param || !isString(param)) {
-    throw new Error(`Incorrect or missing ${paramName}`);
+const isDate = (date: string): boolean => {
+  return Boolean(Date.parse(date));
+};
+
+export const isGender = (param: string): param is Gender => {
+  return (Object.values(Gender) as string[]).includes(param);
+};
+
+const parseString = (value: unknown, fieldName: string): string => {
+  if (!value || !isString(value)) {
+    throw new Error(`Incorrect or missing ${fieldName}`);
   }
-  return param;
+  return value;
+};
+
+const parseDate = (date: unknown): string => {
+  if (!date || !isString(date) || !isDate(date)) {
+    throw new Error('Incorrect or missing date: ' + String(date));
+  }
+  return date;
+};
+
+const parseGender = (gender: unknown): Gender => {
+  if (!gender || !isString(gender) || !isGender(gender)) {
+    throw new Error('Incorrect or missing gender: ' + String(gender));
+  }
+  return gender;
 };
 
 const toNewPatient = (object: unknown): NewPatient => {
@@ -16,20 +38,25 @@ const toNewPatient = (object: unknown): NewPatient => {
     throw new Error('Incorrect or missing data');
   }
 
-  const newPatient = object as Record<string, unknown>;
-  const gender = parseString(newPatient.gender, 'gender');
+  if (
+    'name' in object &&
+    'dateOfBirth' in object &&
+    'ssn' in object &&
+    'gender' in object &&
+    'occupation' in object
+  ) {
+    const newPatient: NewPatient = {
+      name: parseString(object.name, 'name'),
+      dateOfBirth: parseDate(object.dateOfBirth),
+      ssn: parseString(object.ssn, 'ssn'),
+      gender: parseGender(object.gender),
+      occupation: parseString(object.occupation, 'occupation'),
+    };
 
-  if (gender !== 'male' && gender !== 'female' && gender !== 'other') {
-    throw new Error('Incorrect gender');
+    return newPatient;
   }
 
-  return {
-    name: parseString(newPatient.name, 'name'),
-    dateOfBirth: parseString(newPatient.dateOfBirth, 'dateOfBirth'),
-    ssn: parseString(newPatient.ssn, 'ssn'),
-    gender,
-    occupation: parseString(newPatient.occupation, 'occupation'),
-  };
+  throw new Error('Incorrect data: some fields are missing');
 };
 
 export default toNewPatient;
